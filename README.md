@@ -30,3 +30,7 @@ To attempt running it:
 2. Compile the server using `g++`:
    ```powershell
    g++ server.cpp ExpenseManager.cpp -o server.exe -lws2_32
+   ## Running the Executable
+
+```powershell
+.\server.exe
