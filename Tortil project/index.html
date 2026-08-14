@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Splitter Pro</title>
+    <!-- Pull in Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom animations for Modals and Toasts */
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Hide scrollbar for a cleaner look in lists */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-indigo-600 flex items-center gap-2">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Expense Splitter
+            </h1>
+            <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Log Expense
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="max-w-5xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Setup & Actions -->
+        <div class="space-y-6 lg:col-span-1">
+            
+            <!-- Add Person Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                <h2 class="text-lg font-semibold mb-4 text-slate-800">1. Group Members</h2>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="personName" placeholder="Enter name..." class="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow">
+                    <button onclick="addPerson()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-medium transition-colors">Add</button>
+                </div>
+                <div class="flex flex-wrap gap-2" id="groupList">
+                    <span class="text-sm text-slate-500 italic">No members yet.</span>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="bg-rose-50 rounded-xl border border-rose-200 p-5">
+                <h2 class="text-sm font-semibold text-rose-800 uppercase tracking-wider mb-2">Danger Zone</h2>
+                <button onclick="clearAllData()" class="w-full bg-white border border-rose-300 text-rose-600 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm">
+                    Reset All Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Middle Column: Balances & Settle Up -->
+        <div class="space-y-6 lg:col-span-2">
+            
+            <!-- Balances Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-0 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-slate-800">2. Running Balances</h2>
+                </div>
+                <ul id="balancesList" class="divide-y divide-slate-100 p-5 max-h-60 overflow-y-auto no-scrollbar">
+                    <li class="text-slate-500 py-2">No balances yet.</li>
+                </ul>
+            </div>
+
+            <!-- Settle Up Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-0 overflow-hidden border-t-4 border-t-emerald-500">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-slate-800">3. Settle Up (Minimum Transactions)</h2>
+                    <button onclick="settleUp()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-1.5 rounded-md font-medium transition-colors text-sm">
+                        Calculate Math
+                    </button>
+                </div>
+                <ul id="settleUpList" class="divide-y divide-slate-100 p-5">
+                    <li class="text-slate-500 py-2">Click calculate to see who owes whom.</li>
+                </ul>
+            </div>
+
+            <!-- Transaction History Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-0 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-100 bg-slate-50">
+                    <h2 class="text-lg font-semibold text-slate-800">Transaction History</h2>
+                </div>
+                <ul id="historyList" class="divide-y divide-slate-100 px-5 py-2 max-h-72 overflow-y-auto no-scrollbar">
+                    <li class="text-slate-500 py-3">No expenses logged yet.</li>
+                </ul>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- EXPENSE MODAL OVERLAY -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="modalTitle" class="text-xl font-bold text-slate-800">Log a New Expense</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Who Paid?</label>
+                    <select id="payerSelect" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Amount (LKR)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-slate-500 sm:text-sm">Rs.</span>
+                        </div>
+                        <input type="number" id="expenseAmount" min="0" step="0.01" placeholder="0.00" class="w-full pl-10 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Split Between</label>
+                    <div id="splitBetweenGroup" class="flex flex-wrap gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Split Method</label>
+                    <select id="splitType" onchange="toggleExactAmounts()" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                        <option value="EQUAL">Split Equally</option>
+                        <option value="EXACT">Split by Exact Amounts</option>
+                    </select>
+                </div>
+                <div id="exactAmountsContainer" class="hidden bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <label class="block text-sm font-medium text-indigo-900 mb-2">Enter Exact Amounts (LKR):</label>
+                    <div id="exactInputsGroup" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors">Cancel</button>
+                <button onclick="addExpense()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-sm">Save Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-xl transform transition-all duration-300 translate-y-20 opacity-0 z-50 flex items-center gap-3 font-medium">
+        <span id="toastIcon"></span>
+        <span id="toastMsg"></span>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let groupMembers = [];
+        let balances = {}; 
+        let transactionHistory = []; 
+        let editingExpenseId = null; // New tracking variable for Edit mode
+
+        // --- Persistence Logic ---
+        function saveData() {
+            localStorage.setItem('expenseSplitter_members', JSON.stringify(groupMembers));
+            localStorage.setItem('expenseSplitter_history', JSON.stringify(transactionHistory));
+        }
+
+        function loadData() {
+            const savedMembers = localStorage.getItem('expenseSplitter_members');
+            const savedHistory = localStorage.getItem('expenseSplitter_history');
+            
+            if (savedMembers) {
+                groupMembers = JSON.parse(savedMembers);
+                updateUI();
+                
+                if (savedHistory) {
+                    transactionHistory = JSON.parse(savedHistory);
+                    recalculateAllBalances(); 
+                }
+            }
+        }
+
+        function clearAllData() {
+            if(confirm("Are you sure you want to clear all data? This cannot be undone.")) {
+                localStorage.clear();
+                groupMembers = [];
+                balances = {};
+                transactionHistory = [];
+                updateUI();
+                updateBalances();
+                updateHistoryUI();
+                document.getElementById('settleUpList').innerHTML = '<li class="text-slate-500 py-2">Click calculate to see who owes whom.</li>';
+                showToast("Data successfully reset.", "success");
+            }
+        }
+
+        // --- UI Interactions ---
+        function openModal() {
+            if(groupMembers.length === 0) return showToast("Please add group members first!", "error");
+            document.getElementById('modalTitle').innerText = 'Log a New Expense';
+            editingExpenseId = null;
+            document.getElementById('expenseModal').classList.remove('hidden');
+            document.getElementById('expenseModal').children[0].classList.add('slide-up');
+        }
+
+        function closeModal() {
+            document.getElementById('expenseModal').classList.add('hidden');
+            document.getElementById('expenseAmount').value = '';
+            editingExpenseId = null; 
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            
+            if (type === 'success') {
+                toast.className = 'fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium bg-emerald-500 text-white translate-y-0 opacity-100';
+                document.getElementById('toastIcon').innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            } else {
+                toast.className = 'fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium bg-rose-500 text-white translate-y-0 opacity-100';
+                document.getElementById('toastIcon').innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            }
+
+            setTimeout(() => {
+                toast.classList.replace('translate-y-0', 'translate-y-20');
+                toast.classList.replace('opacity-100', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- Core Render Logic ---
+        function updateUI() {
+            const groupList = document.getElementById('groupList');
+            groupList.innerHTML = groupMembers.length > 0 
+                ? groupMembers.map(m => `<span class="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-full text-sm font-medium border border-slate-200">${m}</span>`).join('') 
+                : '<span class="text-sm text-slate-500 italic">No members yet.</span>';
+            
+            const payerSelect = document.getElementById('payerSelect');
+            payerSelect.innerHTML = groupMembers.map(m => `<option value="${m}">${m}</option>`).join('');
+            
+            const splitGroup = document.getElementById('splitBetweenGroup');
+            splitGroup.innerHTML = groupMembers.map(m => `
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" value="${m}" onchange="generateExactInputs()" checked class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <span class="text-sm text-slate-700">${m}</span>
+                </label>
+            `).join('');
+            
+            generateExactInputs();
+        }
+
+        function addPerson() {
+            const nameInput = document.getElementById('personName');
+            const name = nameInput.value.trim();
+            if (name && !groupMembers.includes(name)) {
+                groupMembers.push(name);
+                balances[name] = 0; 
+                nameInput.value = '';
+                updateUI();
+                saveData();
+                updateBalances();
+                showToast(`${name} added to the group!`, "success");
+            } else if (groupMembers.includes(name)) {
+                showToast(`${name} is already in the group!`, "error");
+            }
+        }
+
+        function toggleExactAmounts() {
+            const type = document.getElementById('splitType').value;
+            const container = document.getElementById('exactAmountsContainer');
+            if(type === 'EXACT') {
+                container.classList.remove('hidden');
+                container.classList.add('fade-in');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function generateExactInputs() {
+            const selected = Array.from(document.querySelectorAll('#splitBetweenGroup input:checked')).map(cb => cb.value);
+            const container = document.getElementById('exactInputsGroup');
+            container.innerHTML = selected.map(m => `
+                <div class="flex items-center gap-3">
+                    <label class="w-20 text-sm font-medium text-indigo-900 truncate">${m}</label>
+                    <input type="number" id="exact_${m}" min="0" step="0.01" placeholder="0.00" class="flex-1 px-3 py-1.5 border border-indigo-200 rounded-md focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                </div>
+            `).join('');
+        }
+
+        // --- Core Math & State Logic ---
+        function addExpense() {
+            const payer = document.getElementById('payerSelect').value;
+            const amountLKR = parseFloat(document.getElementById('expenseAmount').value);
+            const splitBetween = Array.from(document.querySelectorAll('#splitBetweenGroup input:checked')).map(cb => cb.value);
+            const splitType = document.getElementById('splitType').value;
+
+            if (!payer || isNaN(amountLKR) || amountLKR <= 0 || splitBetween.length === 0) {
+                return showToast("Please enter a valid amount and select participants.", "error");
+            }
+
+            let exactAmountsMap = {};
+            if (splitType === 'EXACT') {
+                let checkTotal = 0;
+                splitBetween.forEach(person => {
+                    const val = parseFloat(document.getElementById(`exact_${person}`).value) || 0;
+                    exactAmountsMap[person] = val;
+                    checkTotal += Math.round(val * 100);
+                });
+                
+                if (checkTotal !== Math.round(amountLKR * 100)) {
+                    showToast("Warning: Exact amounts don't match total. Balances will be slightly off.", "error");
+                }
+            }
+
+            const newTxnData = {
+                payer: payer,
+                amountLKR: amountLKR,
+                splitTypeRaw: splitType,
+                splitBetweenRaw: splitBetween,
+                exactAmountsMap: exactAmountsMap,
+                splitTypeDisplay: splitType === 'EQUAL' ? 'Equal Split' : 'Exact Amount',
+                splitBetweenDisplay: splitBetween.join(', ')
+            };
+
+            if (editingExpenseId) {
+                // Update existing transaction
+                const index = transactionHistory.findIndex(t => t.id === editingExpenseId);
+                if (index !== -1) {
+                    transactionHistory[index] = { 
+                        ...transactionHistory[index], 
+                        ...newTxnData 
+                    };
+                }
+                showToast("Expense updated successfully!", "success");
+            } else {
+                // Add new transaction
+                transactionHistory.push({
+                    id: Date.now(), 
+                    ...newTxnData,
+                    date: new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })
+                });
+                showToast("Expense logged successfully!", "success");
+            }
+
+            closeModal();
+            recalculateAllBalances(); 
+            saveData(); 
+        }
+
+        function editExpense(id) {
+            const txn = transactionHistory.find(t => t.id === id);
+            if (!txn) return;
+
+            editingExpenseId = id;
+
+            // Populate form fields
+            document.getElementById('payerSelect').value = txn.payer;
+            document.getElementById('expenseAmount').value = txn.amountLKR;
+            
+            // Check correct checkboxes
+            const checkboxes = document.querySelectorAll('#splitBetweenGroup input');
+            checkboxes.forEach(cb => {
+                cb.checked = txn.splitBetweenRaw.includes(cb.value);
+            });
+            
+            // Generate EXACT input fields dynamically based on selection
+            generateExactInputs();
+
+            // Set split type
+            document.getElementById('splitType').value = txn.splitTypeRaw;
+            toggleExactAmounts();
+
+            // Populate exact amounts if applicable
+            if (txn.splitTypeRaw === 'EXACT') {
+                txn.splitBetweenRaw.forEach(person => {
+                    const input = document.getElementById(`exact_${person}`);
+                    if (input) input.value = txn.exactAmountsMap[person] || '';
+                });
+            }
+
+            // Update modal title and show
+            document.getElementById('modalTitle').innerText = 'Edit Expense';
+            document.getElementById('expenseModal').classList.remove('hidden');
+            document.getElementById('expenseModal').children[0].classList.add('slide-up');
+        }
+
+        function deleteExpense(id) {
+            if(!confirm("Are you sure you want to delete this expense?")) return;
+            
+            transactionHistory = transactionHistory.filter(txn => txn.id !== id);
+            
+            recalculateAllBalances();
+            saveData();
+            showToast("Expense deleted and balances updated.", "success");
+        }
+
+        function recalculateAllBalances() {
+            groupMembers.forEach(m => balances[m] = 0);
+            
+            transactionHistory.forEach(txn => {
+                const totalCents = Math.round(txn.amountLKR * 100);
+                balances[txn.payer] += totalCents;
+
+                if (txn.splitTypeRaw === 'EQUAL') {
+                    const numPeople = txn.splitBetweenRaw.length;
+                    const baseShare = Math.floor(totalCents / numPeople);
+                    let remainder = totalCents % numPeople;
+
+                    txn.splitBetweenRaw.forEach(person => {
+                        let currentShare = baseShare;
+                        if (remainder > 0) { currentShare += 1; remainder -= 1; }
+                        balances[person] -= currentShare;
+                    });
+                } else if (txn.splitTypeRaw === 'EXACT') {
+                    txn.splitBetweenRaw.forEach(person => {
+                        const exactCents = Math.round((txn.exactAmountsMap[person] || 0) * 100);
+                        balances[person] -= exactCents;
+                    });
+                }
+            });
+
+            updateBalances();
+            updateHistoryUI();
+            document.getElementById('settleUpList').innerHTML = '<li class="text-slate-500 py-2">Click calculate to see new transactions.</li>';
+        }
+
+        function updateHistoryUI() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = [...transactionHistory].reverse().map(txn => `
+                <li class="py-3 flex justify-between items-center group">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-slate-800">${txn.payer} paid <span class="text-indigo-600">Rs. ${txn.amountLKR.toFixed(2)}</span></span>
+                            <span class="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">${txn.date}</span>
+                        </div>
+                        <span class="text-sm text-slate-500">${txn.splitTypeDisplay} between ${txn.splitBetweenDisplay}</span>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <button onclick="editExpense(${txn.id})" class="text-indigo-400 hover:text-indigo-600 p-2" title="Edit Expense">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="deleteExpense(${txn.id})" class="text-rose-400 hover:text-rose-600 p-2" title="Delete Expense">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </li>
+            `).join('') || '<li class="text-slate-500 py-3">No expenses logged yet.</li>';
+        }
+
+        function updateBalances() {
+            const list = document.getElementById('balancesList');
+            list.innerHTML = groupMembers.map(m => {
+                const lkr = (balances[m] / 100).toFixed(2);
+                const isPositive = balances[m] > 0;
+                const isNegative = balances[m] < 0;
+                const textClass = isPositive ? 'text-emerald-600 bg-emerald-50' : (isNegative ? 'text-rose-600 bg-rose-50' : 'text-slate-500');
+                const text = isPositive ? 'Gets back' : (isNegative ? 'Owes' : 'Settled');
+                
+                return `
+                <li class="py-3 flex justify-between items-center">
+                    <span class="font-medium text-slate-800">${m}</span>
+                    <span class="px-3 py-1 rounded-full font-bold text-sm ${textClass}">
+                        ${text} Rs. ${Math.abs(lkr).toFixed(2)}
+                    </span>
+                </li>`;
+            }).join('') || '<li class="text-slate-500 py-2">No balances yet.</li>';
+        }
+
+        function settleUp() {
+            const debtors = [];
+            const creditors = [];
+
+            for (const [person, balance] of Object.entries(balances)) {
+                if (balance < 0) debtors.push({ name: person, amount: -balance });
+                else if (balance > 0) creditors.push({ name: person, amount: balance });
+            }
+
+            const transactions = [];
+
+            while (debtors.length > 0 && creditors.length > 0) {
+                debtors.sort((a, b) => b.amount - a.amount);
+                creditors.sort((a, b) => b.amount - a.amount);
+
+                const debtor = debtors[0];
+                const creditor = creditors[0];
+                const settleAmount = Math.min(debtor.amount, creditor.amount);
+                
+                transactions.push(`
+                    <li class="py-3 flex items-center justify-between gap-4 fade-in">
+                        <span class="font-medium text-rose-600">${debtor.name}</span>
+                        <div class="flex-1 border-t-2 border-dashed border-slate-200 relative">
+                            <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-2 text-sm font-bold text-slate-500">Rs. ${(settleAmount / 100).toFixed(2)}</span>
+                            <svg class="absolute -right-1 -top-2.5 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                        <span class="font-medium text-emerald-600">${creditor.name}</span>
+                    </li>
+                `);
+
+                debtor.amount -= settleAmount;
+                creditor.amount -= settleAmount;
+
+                if (debtor.amount === 0) debtors.shift();
+                if (creditor.amount === 0) creditors.shift();
+            }
+
+            const list = document.getElementById('settleUpList');
+            list.innerHTML = transactions.length > 0 
+                ? transactions.join('') 
+                : '<li class="text-slate-500 py-3 flex items-center gap-2"><svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Everyone is fully settled up! No transactions needed.</li>';
+        }
+
+        // Initialize app data on load
+        window.onload = loadData;
+    </script>
+</body>
+</html>
