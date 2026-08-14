@@ -33,4 +33,4 @@ To attempt running it:
    ## Running the Executable
 
 ```powershell
-.\server.exe
+   .\server.exe
